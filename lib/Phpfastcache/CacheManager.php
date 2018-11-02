@@ -98,6 +98,11 @@ class CacheManager
     protected static $badPracticeOmeter = [];
 
     /**
+     * @var bool
+     */
+    protected static $use_fallback = false;
+
+    /**
      * @param string $driver
      * @param array|ConfigurationOption $config
      * @param string $instanceId
@@ -105,10 +110,12 @@ class CacheManager
      * @return ExtendedCacheItemPoolInterface
      *
      * @throws PhpfastcacheDriverCheckException
-     * @throws PhpfastcacheInvalidConfigurationException
+     * @throws PhpfastcacheDriverException
      * @throws PhpfastcacheDriverNotFoundException
      * @throws PhpfastcacheInvalidArgumentException
-     * @throws PhpfastcacheDriverException
+     * @throws PhpfastcacheInvalidConfigurationException
+     * @throws PhpfastcacheLogicException
+     * @throws PhpfastcacheUnsupportedOperationException
      */
     public static function getInstance(string $driver = self::AUTOMATIC_DRIVER_CLASS, $config = null, string $instanceId = null): ExtendedCacheItemPoolInterface
     {
@@ -130,10 +137,12 @@ class CacheManager
                     $configClass = $driverClass::getConfigClass();
                     self::$instances[$instanceId] = new $driverClass(new $configClass($config->toArray()), $instanceId);
                     self::$instances[$instanceId]->setEventManager(EventManager::getInstance());
+                    self::$use_fallback = false;
                 } else {
                     throw new PhpfastcacheDriverNotFoundException(\sprintf('The driver "%s" does not exists', $driver));
                 }
             } catch (PhpfastcacheDriverCheckException $e) {
+                self::$use_fallback = true;
                 return self::getFallbackInstance($driver, $config, $e);
             }
         } else {
@@ -157,6 +166,8 @@ class CacheManager
      * @throws PhpfastcacheDriverException
      * @throws PhpfastcacheDriverNotFoundException
      * @throws PhpfastcacheInvalidConfigurationException
+     * @throws PhpfastcacheLogicException
+     * @throws PhpfastcacheUnsupportedOperationException
      */
     protected static function getFallbackInstance(string $driver, ConfigurationOption $config, PhpfastcacheDriverCheckException $e)
     {
@@ -180,7 +191,6 @@ class CacheManager
      *
      * @return ExtendedCacheItemPoolInterface
      *
-     * @throws PhpfastcacheInvalidArgumentException
      * @throws PhpfastcacheInstanceNotFoundException
      */
     public static function getInstanceById(string $instanceId): ExtendedCacheItemPoolInterface
@@ -218,10 +228,21 @@ class CacheManager
     }
 
     /**
+     * @return bool
+     */
+    public static function hasFallback() {
+        return self::$use_fallback;
+    }
+
+    /**
      * @param ConfigurationOption $config
      * @return string
-     * @throws PhpfastcacheDriverCheckException
-     * @throws \Phpfastcache\Exceptions\PhpfastcacheLogicException
+     * @throws PhpfastcacheDriverException
+     * @throws PhpfastcacheDriverNotFoundException
+     * @throws PhpfastcacheInvalidArgumentException
+     * @throws PhpfastcacheInvalidConfigurationException
+     * @throws PhpfastcacheLogicException
+     * @throws PhpfastcacheUnsupportedOperationException
      */
     public static function getAutoClass(ConfigurationOption $config): string
     {
@@ -256,6 +277,13 @@ class CacheManager
      * @param string $name
      * @param array $arguments
      * @return ExtendedCacheItemPoolInterface
+     * @throws PhpfastcacheDriverCheckException
+     * @throws PhpfastcacheDriverException
+     * @throws PhpfastcacheDriverNotFoundException
+     * @throws PhpfastcacheInvalidArgumentException
+     * @throws PhpfastcacheInvalidConfigurationException
+     * @throws PhpfastcacheLogicException
+     * @throws PhpfastcacheUnsupportedOperationException
      */
     public static function __callStatic(string $name, array $arguments): ExtendedCacheItemPoolInterface
     {
@@ -330,6 +358,8 @@ class CacheManager
 
     /**
      * @return ConfigurationOption
+     * @throws PhpfastcacheInvalidConfigurationException
+     * @throws \ReflectionException
      */
     public static function getDefaultConfig(): ConfigurationOption
     {
@@ -575,6 +605,7 @@ class CacheManager
      * @return ConfigurationOption
      * @throws PhpfastcacheInvalidArgumentException
      * @throws PhpfastcacheInvalidConfigurationException
+     * @throws \ReflectionException
      */
     protected static function validateConfig($config): ConfigurationOption
     {
