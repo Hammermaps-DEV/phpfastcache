@@ -98,11 +98,6 @@ class CacheManager
     protected static $badPracticeOmeter = [];
 
     /**
-     * @var bool
-     */
-    protected static $use_fallback = false;
-
-    /**
      * @param string $driver
      * @param array|ConfigurationOption $config
      * @param string $instanceId
@@ -135,15 +130,15 @@ class CacheManager
             try {
                 if (\class_exists($driverClass)) {
                     $configClass = $driverClass::getConfigClass();
-                    self::$instances[$instanceId] = new $driverClass(new $configClass($config->toArray()), $instanceId);
-                    self::$instances[$instanceId]->setEventManager(EventManager::getInstance());
-                    self::$use_fallback = false;
+                    self::$instances[$instanceId]['instance'] = new $driverClass(new $configClass($config->toArray()), $instanceId);
+                    self::$instances[$instanceId]['instance']->setEventManager(EventManager::getInstance());
+                    self::$instances[$instanceId]['fallback'] = false;
                 } else {
                     throw new PhpfastcacheDriverNotFoundException(\sprintf('The driver "%s" does not exists', $driver));
                 }
-            } catch (PhpfastcacheDriverCheckException $e) {
-                self::$use_fallback = true;
-                return self::getFallbackInstance($driver, $config, $e);
+            } catch (PhpfastcacheDriverCheckException | PhpfastcacheDriverNotFoundException $e) {
+                self::$instances[$instanceId]['instance'] = self::getFallbackInstance($driver, $config, $e);
+                self::$instances[$instanceId]['fallback'] = true;
             }
         } else {
             if (self::$badPracticeOmeter[$driver] >= 2) {
@@ -154,7 +149,7 @@ class CacheManager
 
         self::$badPracticeOmeter[$driver]++;
 
-        return self::$instances[$instanceId];
+        return self::$instances[$instanceId]['instance'];
     }
 
     /**
@@ -174,7 +169,6 @@ class CacheManager
         if ($config->getFallback()) {
             try {
                 $fallback = $config->getFallback();
-                $config->setFallback('');
                 \trigger_error(\sprintf('The "%s" driver is unavailable at the moment, the fallback driver "%s" has been used instead.', $driver,
                     $fallback),  \E_USER_WARNING);
                 return self::getInstance($fallback, $config->getFallbackConfig());
@@ -188,15 +182,25 @@ class CacheManager
 
     /**
      * @param string $instanceId
-     *
      * @return ExtendedCacheItemPoolInterface
-     *
      * @throws PhpfastcacheInstanceNotFoundException
      */
     public static function getInstanceById(string $instanceId): ExtendedCacheItemPoolInterface
     {
         if (isset(self::$instances[$instanceId])) {
-            return self::$instances[$instanceId];
+            return self::$instances[$instanceId]['instance'];
+        }
+
+        throw new PhpfastcacheInstanceNotFoundException(\sprintf('Instance ID %s not found', $instanceId));
+    }
+
+    /**
+     * @param string $instanceId
+     */
+    public static function hasFallback(string $instanceId): bool
+    {
+        if (isset(self::$instances[$instanceId])) {
+            return self::$instances[$instanceId]['fallback'];
         }
 
         throw new PhpfastcacheInstanceNotFoundException(\sprintf('Instance ID %s not found', $instanceId));
@@ -225,13 +229,6 @@ class CacheManager
     public static function &getInternalInstances(): array
     {
         return self::$instances;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function hasFallback() {
-        return self::$use_fallback;
     }
 
     /**
