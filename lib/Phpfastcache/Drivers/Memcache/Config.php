@@ -53,6 +53,11 @@ class Config extends ConfigurationOption
     protected $saslPassword = '';
 
     /**
+     * @var bool
+     */
+    protected $persistent = false;
+
+    /**
      * @return bool
      */
     public function getSaslUser(): string
@@ -140,5 +145,19 @@ class Config extends ConfigurationOption
     {
         $this->port = $port;
         return $this;
+    }
+
+    /**
+     * @param bool $persistent
+     */
+    public function setPersistent(bool $persistent): void {
+        $this->persistent = $persistent;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getPersistent(): bool {
+        return $this->persistent;
     }
 }

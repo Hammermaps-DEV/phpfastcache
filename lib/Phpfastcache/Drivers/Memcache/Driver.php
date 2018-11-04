@@ -93,10 +93,10 @@ class Driver implements ExtendedCacheItemPoolInterface
                 /**
                  * If path is provided we consider it as an UNIX Socket
                  */
-                if (!empty($server['path']) && !$this->instance->addServer($server['path'], 0)) {
+                if (!empty($server['path']) && !$this->instance->addServer($server['path'], 0, $this->getConfig()->getPersistent())) {
                     $this->fallback = true;
                 } else {
-                    if (!empty($server['host']) && !$this->instance->addServer($server['host'], $server['port'])) {
+                    if (!empty($server['host']) && !$this->instance->addServer($server['host'], $server['port'], $this->getConfig()->getPersistent())) {
                         $this->fallback = true;
                     }
                 }
@@ -154,6 +154,11 @@ class Driver implements ExtendedCacheItemPoolInterface
             if ($ttl > 2592000) {
                 $ttl = \time() + $ttl;
             }
+
+            if($this->getConfig()->isCompressData()) {
+                $this->memcacheFlags = MEMCACHE_COMPRESSED;
+            }
+
             return $this->instance->set($item->getKey(), $this->driverPreWrap($item), $this->memcacheFlags, $ttl);
         }
 
