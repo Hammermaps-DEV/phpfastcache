@@ -61,6 +61,10 @@ class Driver implements ExtendedCacheItemPoolInterface
             return null;
         }
 
+        if($this->getConfig()->isCompressData()) {
+            $data = json_decode(gzuncompress($data),true);
+        }
+
         return $data;
     }
 
@@ -77,7 +81,12 @@ class Driver implements ExtendedCacheItemPoolInterface
         if ($item instanceof Item) {
             $ttl = $item->getExpirationDate()->getTimestamp() - \time();
 
-            return zend_shm_cache_store($item->getKey(), $this->driverPreWrap($item), ($ttl > 0 ? $ttl : 0));
+            $data = $this->driverPreWrap($item);
+            if($this->getConfig()->isCompressData()) {
+                $data = gzcompress(json_encode($this->driverPreWrap($item)));
+            }
+
+            return zend_shm_cache_store($item->getKey(), $data, ($ttl > 0 ? $ttl : 0));
         }
 
         throw new PhpfastcacheInvalidArgumentException('Cross-Driver type confusion detected');

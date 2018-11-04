@@ -45,6 +45,8 @@ class Driver implements ExtendedCacheItemPoolInterface
      * Driver constructor.
      * @param Config $config
      * @param string $instanceId
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverCheckException
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverConnectException
      */
     public function __construct(Config $config, string $instanceId)
     {
@@ -53,6 +55,7 @@ class Driver implements ExtendedCacheItemPoolInterface
 
     /**
      * @return bool
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheIOException
      */
     public function driverCheck(): bool
     {
@@ -70,6 +73,7 @@ class Driver implements ExtendedCacheItemPoolInterface
     /**
      * @param \Psr\Cache\CacheItemInterface $item
      * @return null|array
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheIOException
      */
     protected function driverRead(CacheItemInterface $item)
     {
@@ -83,6 +87,10 @@ class Driver implements ExtendedCacheItemPoolInterface
 
         $content = $this->readfile($file_path);
 
+        if($this->getConfig()->isCompressData()) {
+            $content = gzuncompress($content);
+        }
+
         return $this->decode($content);
 
     }
@@ -91,6 +99,7 @@ class Driver implements ExtendedCacheItemPoolInterface
      * @param \Psr\Cache\CacheItemInterface $item
      * @return bool
      * @throws PhpfastcacheInvalidArgumentException
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheIOException
      */
     protected function driverWrite(CacheItemInterface $item): bool
     {
@@ -100,6 +109,10 @@ class Driver implements ExtendedCacheItemPoolInterface
         if ($item instanceof Item) {
             $file_path = $this->getFilePath($item->getKey());
             $data = $this->encode($this->driverPreWrap($item));
+
+            if($this->getConfig()->isCompressData()) {
+                $data = gzcompress($data);
+            }
 
             /**
              * Force write
@@ -118,6 +131,7 @@ class Driver implements ExtendedCacheItemPoolInterface
      * @param \Psr\Cache\CacheItemInterface $item
      * @return bool
      * @throws PhpfastcacheInvalidArgumentException
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheIOException
      */
     protected function driverDelete(CacheItemInterface $item): bool
     {
@@ -143,6 +157,7 @@ class Driver implements ExtendedCacheItemPoolInterface
 
     /**
      * @return bool
+     * @throws \Phpfastcache\Exceptions\PhpfastcacheIOException
      */
     protected function driverClear(): bool
     {

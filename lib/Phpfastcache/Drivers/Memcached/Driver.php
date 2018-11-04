@@ -129,6 +129,10 @@ class Driver implements ExtendedCacheItemPoolInterface
             return null;
         }
 
+        if($this->getConfig()->isCompressData()) {
+            $val = json_decode(gzuncompress($val),true);
+        }
+
         return $val;
     }
 
@@ -151,7 +155,12 @@ class Driver implements ExtendedCacheItemPoolInterface
                 $ttl = \time() + $ttl;
             }
 
-            return $this->instance->set($item->getKey(), $this->driverPreWrap($item), $ttl);
+            $data = $this->driverPreWrap($item);
+            if($this->getConfig()->isCompressData()) {
+                $data = gzcompress(json_encode($this->driverPreWrap($item)));
+            }
+
+            return $this->instance->set($item->getKey(), $data, $ttl);
         }
 
         throw new PhpfastcacheInvalidArgumentException('Cross-Driver type confusion detected');
