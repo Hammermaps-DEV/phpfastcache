@@ -36,10 +36,6 @@ class Driver implements ExtendedCacheItemPoolInterface
     use DriverBaseTrait {
         DriverBaseTrait::__construct as private __parentConstruct;
     }
-    /**
-     *
-     */
-    const FILE_DIR = 'files';
 
     /**
      * Driver constructor.

@@ -53,26 +53,6 @@ trait IOHelperTrait
         $tmp_dir = \rtrim(\ini_get('upload_tmp_dir') ?: \sys_get_temp_dir(), '\\/') . \DIRECTORY_SEPARATOR . 'phpfastcache';
 
         /**
-         * Calculate the security key
-         */
-        {
-            $securityKey = $this->getConfig()->getSecurityKey();
-            if (!$securityKey || \mb_strtolower($securityKey) === 'auto') {
-                if (isset($_SERVER['HTTP_HOST'])) {
-                    $securityKey = \preg_replace('/^www./', '', \strtolower(\str_replace(':', '_', $_SERVER['HTTP_HOST'])));
-                } else {
-                    $securityKey = ($this->isPHPModule() ? 'web' : 'cli');
-                }
-            }
-
-            if ($securityKey !== '') {
-                $securityKey .= '/';
-            }
-
-            $securityKey = static::cleanFileName($securityKey);
-        }
-
-        /**
          * Extends the temporary directory
          * with the security key and the driver name
          */
@@ -84,9 +64,8 @@ trait IOHelperTrait
             $path = rtrim($this->getConfig()->getPath(), '/') . \DIRECTORY_SEPARATOR;
         }
 
-        $path_suffix = $securityKey . \DIRECTORY_SEPARATOR . $this->getDriverName();
-        $full_path = Directory::getAbsolutePath($path . $path_suffix);
-        $full_path_tmp = Directory::getAbsolutePath($tmp_dir . $path_suffix);
+        $full_path = Directory::getAbsolutePath($path);
+        $full_path_tmp = Directory::getAbsolutePath($tmp_dir);
         $full_path_hash = $this->getConfig()->getDefaultFileNameHashFunction()($full_path);
 
         /**
