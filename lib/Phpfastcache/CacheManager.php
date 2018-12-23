@@ -111,6 +111,7 @@ class CacheManager
      * @throws PhpfastcacheInvalidConfigurationException
      * @throws PhpfastcacheLogicException
      * @throws PhpfastcacheUnsupportedOperationException
+     * @throws \ReflectionException
      */
     public static function getInstance(string $driver = self::AUTOMATIC_DRIVER_CLASS, $config = null, string $instanceId = null): ExtendedCacheItemPoolInterface
     {
@@ -124,7 +125,7 @@ class CacheManager
         $instanceId = $instanceId ?: \md5($driver . \serialize($config->toArray()));
 
         if (!isset(self::$instances[$instanceId])) {
-            self::$badPracticeOmeter[$driver] = 1;
+            self::$badPracticeOmeter[$driver][$instanceId] = 1;
             $driverClass = self::validateDriverClass(self::getDriverClass($driver));
 
             try {
@@ -136,18 +137,18 @@ class CacheManager
                 } else {
                     throw new PhpfastcacheDriverNotFoundException(\sprintf('The driver "%s" does not exists', $driver));
                 }
-            } catch (PhpfastcacheDriverCheckException | PhpfastcacheDriverNotFoundException $e) {
+            } catch (PhpfastcacheDriverNotFoundException $e) {
                 self::$instances[$instanceId]['instance'] = self::getFallbackInstance($driver, $config, $e);
                 self::$instances[$instanceId]['fallback'] = true;
             }
         } else {
-            if (self::$badPracticeOmeter[$driver] >= 2) {
-                \trigger_error('[' . $driver . '] Calling many times CacheManager::getInstance() for already instanced drivers is a bad practice and have a significant impact on performances.
+            if (self::$badPracticeOmeter[$driver][$instanceId] >= 2) {
+                \trigger_error('[' . $driver . ']['. $instanceId .'] Calling many times CacheManager::getInstance() for already instanced drivers is a bad practice and have a significant impact on performances.
            See https://github.com/PHPSocialNetwork/phpfastcache/wiki/[V5]-Why-calling-getInstance%28%29-each-time-is-a-bad-practice-%3F');
             }
         }
 
-        self::$badPracticeOmeter[$driver]++;
+        self::$badPracticeOmeter[$driver][$instanceId]++;
 
         return self::$instances[$instanceId]['instance'];
     }
@@ -163,6 +164,7 @@ class CacheManager
      * @throws PhpfastcacheInvalidConfigurationException
      * @throws PhpfastcacheLogicException
      * @throws PhpfastcacheUnsupportedOperationException
+     * @throws \ReflectionException
      */
     protected static function getFallbackInstance(string $driver, ConfigurationOption $config, PhpfastcacheDriverCheckException $e)
     {
@@ -196,6 +198,8 @@ class CacheManager
 
     /**
      * @param string $instanceId
+     * @return bool
+     * @throws PhpfastcacheInstanceNotFoundException
      */
     public static function hasFallback(string $instanceId): bool
     {
@@ -240,6 +244,7 @@ class CacheManager
      * @throws PhpfastcacheInvalidConfigurationException
      * @throws PhpfastcacheLogicException
      * @throws PhpfastcacheUnsupportedOperationException
+     * @throws \ReflectionException
      */
     public static function getAutoClass(ConfigurationOption $config): string
     {
@@ -281,6 +286,7 @@ class CacheManager
      * @throws PhpfastcacheInvalidConfigurationException
      * @throws PhpfastcacheLogicException
      * @throws PhpfastcacheUnsupportedOperationException
+     * @throws \ReflectionException
      */
     public static function __callStatic(string $name, array $arguments): ExtendedCacheItemPoolInterface
     {
