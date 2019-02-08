@@ -166,7 +166,7 @@ class CacheManager
      * @throws PhpfastcacheUnsupportedOperationException
      * @throws \ReflectionException
      */
-    protected static function getFallbackInstance(string $driver, ConfigurationOption $config, PhpfastcacheDriverCheckException $e)
+    protected static function getFallbackInstance(string $driver, ConfigurationOption $config, PhpfastcacheDriverCheckException $e): ExtendedCacheItemPoolInterface
     {
         if ($config->getFallback()) {
             try {
@@ -307,22 +307,15 @@ class CacheManager
     }
 
     /**
-     * @param ExtendedCacheItemPoolInterface $cachePoolInstance
-     * @return bool
+     * @param string $instanceId
      * @since 7.0.4
      */
-    public static function clearInstance(ExtendedCacheItemPoolInterface $cachePoolInstance): bool
+    public static function clearInstance(string $instanceId): void
     {
-        $found = false;
-        self::$instances = \array_filter(\array_map(function (ExtendedCacheItemPoolInterface $cachePool) use ($cachePoolInstance, &$found){
-            if(\spl_object_hash($cachePool) === \spl_object_hash($cachePoolInstance)){
-                $found = true;
-                return null;
-            }
-            return $cachePool;
-        }, self::$instances));
-
-        return $found;
+        if (isset(self::$instances[$instanceId])) {
+            unset(self::$instances[$instanceId]);
+            \gc_collect_cycles();
+        }
     }
 
     /**
@@ -342,16 +335,6 @@ class CacheManager
     }
 
     /**
-     * @param string $path
-     * @deprecated This method has been deprecated as of V7, please use driver override feature instead
-     */
-    public static function setNamespacePath($path)
-    {
-        \trigger_error('This method has been deprecated as of V7, please use cache manager "override" or "custom driver" features instead', E_USER_DEPRECATED);
-        self::$namespacePath = \trim($path, "\\") . '\\';
-    }
-
-    /**
      * @param ConfigurationOption $config
      */
     public static function setDefaultConfig(ConfigurationOption $config)
@@ -367,54 +350,6 @@ class CacheManager
     public static function getDefaultConfig(): ConfigurationOption
     {
         return self::$config ?: self::$config = new ConfigurationOption();
-    }
-
-    /**
-     * @return array
-     * @deprecated As of V7 will be removed soon or later, use CacheManager::getDriverList() instead
-     */
-    public static function getStaticSystemDrivers(): array
-    {
-        \trigger_error(\sprintf('Method "%s" is deprecated as of the V7 and will be removed soon or later, use CacheManager::getDriverList() instead.',
-            __METHOD__), \E_USER_DEPRECATED);
-        return [
-            'Apc',
-            'Apcu',
-            'Cassandra',
-            'Couchbase',
-            'Couchdb',
-            'Devnull',
-            'Files',
-            'Leveldb',
-            'Memcache',
-            'Memcached',
-            'Memstatic',
-            'Mongodb',
-            'Predis',
-            'Redis',
-            'Riak',
-            'Ssdb',
-            'Sqlite',
-            'Wincache',
-            'Xcache',
-            'Zenddisk',
-            'Zendshm',
-        ];
-    }
-
-    /**
-     * @return array
-     * @deprecated As of V7 will be removed soon or later, use CacheManager::getDriverList() instead
-     */
-    public static function getStaticAllDrivers(): array
-    {
-        \trigger_error(\sprintf('Method "%s" is deprecated as of the V7 and will be removed soon or later, use CacheManager::getDriverList() instead.',
-            __METHOD__), \E_USER_DEPRECATED);
-        return \array_merge(self::getStaticSystemDrivers(), [
-            'Devtrue',
-            'Devfalse',
-            'Cookie',
-        ]);
     }
 
     /**
@@ -496,7 +431,7 @@ class CacheManager
      * @throws \Phpfastcache\Exceptions\PhpfastcacheUnsupportedOperationException
      * @return void
      */
-    public static function addCustomDriver(string $driverName, string $className)
+    public static function addCustomDriver(string $driverName, string $className): void
     {
         $driverName = self::standardizeDriverName($driverName);
 
@@ -527,7 +462,7 @@ class CacheManager
      * @throws \Phpfastcache\Exceptions\PhpfastcacheLogicException
      * @return void
      */
-    public static function removeCustomDriver(string $driverName)
+    public static function removeCustomDriver(string $driverName): void
     {
         $driverName = self::standardizeDriverName($driverName);
 
@@ -550,7 +485,7 @@ class CacheManager
      * @throws \Phpfastcache\Exceptions\PhpfastcacheUnsupportedOperationException
      * @return void
      */
-    public static function addCoreDriverOverride(string $driverName, string $className)
+    public static function addCoreDriverOverride(string $driverName, string $className): void
     {
         $driverName = self::standardizeDriverName($driverName);
 
@@ -588,7 +523,7 @@ class CacheManager
      * @throws \Phpfastcache\Exceptions\PhpfastcacheLogicException
      * @return void
      */
-    public static function removeCoreDriverOverride(string $driverName)
+    public static function removeCoreDriverOverride(string $driverName): void
     {
         $driverName = self::standardizeDriverName($driverName);
 
