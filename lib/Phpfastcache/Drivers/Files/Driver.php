@@ -83,7 +83,8 @@ class Driver implements ExtendedCacheItemPoolInterface
 
         $content = $this->readfile($file_path);
 
-        if($this->getConfig()->isCompressData()) {
+        if($this->getConfig()->isCompressData() ||
+            mime_content_type($file_path) == 'application/zlib') {
             $content = gzuncompress($content);
         }
 

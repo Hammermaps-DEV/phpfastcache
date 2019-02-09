@@ -89,6 +89,21 @@ interface ExtendedCacheItemPoolInterface extends CacheItemPoolInterface
     public function getDriverName(): string;
 
     /**
+     * @return string
+     */
+    public function getFallbackMsg(): array;
+
+    /**
+     * @return bool
+     */
+    public function isFallback(): bool;
+
+    /**
+     * @param bool $fallback
+     */
+    public function setIsFallback(bool $fallback): void;
+
+    /**
      * @return mixed
      */
     public function getInstanceId(): string;

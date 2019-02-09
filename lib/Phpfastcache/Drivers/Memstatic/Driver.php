@@ -63,7 +63,7 @@ class Driver implements ExtendedCacheItemPoolInterface
     {
         $key = \md5($item->getKey());
         if (isset($this->staticStack[$key])) {
-            return unserialize(gzuncompress($this->staticStack[$key]));
+            return $this->decode(gzuncompress($this->staticStack[$key]));
         }
         return null;
     }
@@ -79,7 +79,7 @@ class Driver implements ExtendedCacheItemPoolInterface
          * Check for Cross-Driver type confusion
          */
         if ($item instanceof Item) {
-            $this->staticStack[\md5($item->getKey())] = gzcompress(serialize($this->driverPreWrap($item)));
+            $this->staticStack[\md5($item->getKey())] = gzcompress($this->encode($this->driverPreWrap($item)));
             return true;
         }
 

@@ -39,6 +39,11 @@ trait DriverBaseTrait
     protected $fallback = false;
 
     /**
+     * @var array
+     */
+    protected $fallback_msg = [];
+
+    /**
      * @var mixed Instance of driver service
      */
     protected $instance;
@@ -73,13 +78,7 @@ trait DriverBaseTrait
         try{
             $this->driverConnect();
         }catch(\Exception $e){
-            throw new PhpfastcacheDriverConnectException(\sprintf(
-                self::DRIVER_CONNECT_FAILURE,
-                $this->getDriverName(),
-                $e->getMessage(),
-                $e->getLine() ?: 'unknown line',
-                $e->getFile() ?: 'unknown file'
-            ));
+            $this->fallback = true;
         }
     }
 
@@ -99,6 +98,35 @@ trait DriverBaseTrait
         return $this->config;
     }
 
+    /**
+     * @return bool
+     */
+    public function isFallback(): bool
+    {
+        return $this->fallback;
+    }
+
+    /**
+     * @return bool
+     */
+    public function setIsFallback(bool $fallback): void
+    {
+        $this->fallback = $fallback;
+    }
+
+
+    public function setFallbackMsg(array $array): void
+    {
+        $this->fallback_msg = $array;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFallbackMsg(): array
+    {
+        return $this->fallback_msg;
+    }
 
     /**
      * @param $optionName
