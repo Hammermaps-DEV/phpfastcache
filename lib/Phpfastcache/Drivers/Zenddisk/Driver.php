@@ -62,7 +62,9 @@ class Driver implements ExtendedCacheItemPoolInterface
         }
 
         if($this->getConfig()->isCompressData()) {
-            $data = json_decode(gzuncompress($data),true);
+            if(!is_array($data)) {
+                $data = json_decode(gzuncompress($data), true);
+            }
         }
 
         return $data;
